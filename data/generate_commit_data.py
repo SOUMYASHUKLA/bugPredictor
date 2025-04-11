@@ -108,7 +108,7 @@ def extract_commit_data(repo_path: str, start_date: str, end_date: str) -> List[
                 commits_data.append(commit_data)
                 
                 if len(commits_data) % 10 == 0:  # More frequent updates since we expect fewer commits
-                    print(f"Processed {len(commits_data)} commits from 2024-2025...")
+                    print(f"Processed {len(commits_data)} commits from {start_date}-{end_date}...")
                     
             except Exception as e:
                 print(f"Error processing commit {commit.hexsha}: {str(e)}")
@@ -126,7 +126,7 @@ def main():
     data_dir.mkdir(exist_ok=True)
     
     # Navigate up two directories to find tomcat
-    repo_path = os.path.abspath(os.path.join(os.getcwd(), '..', '..', 'tomcat'))
+    repo_path = os.path.abspath(os.path.join(os.getcwd(), 'data/tomcat'))
     
     if not os.path.exists(repo_path):
         print(f"Error: Could not find Tomcat repository at {repo_path}")
@@ -137,8 +137,8 @@ def main():
     # Extract commits for 2024-2025 only
     commits_data = extract_commit_data(
         repo_path=repo_path,
-        start_date='2024-01-01',
-        end_date='2025-01-01'
+        start_date='2020-01-01',
+        end_date='2024-01-01'
     )
     
     if not commits_data:
@@ -146,7 +146,7 @@ def main():
         return
     
     # Save to JSON file
-    output_file = data_dir / 'commits_data_2024_2025.json'
+    output_file = data_dir / 'commits_data_2020_2024.json'
     with open(output_file, 'w') as f:
         json.dump(commits_data, f, indent=2)
     

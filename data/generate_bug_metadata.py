@@ -115,7 +115,7 @@ def main():
     data_dir.mkdir(exist_ok=True)
     
     # Load commits data
-    commits_file = data_dir / 'commits_data_2024_2025.json'
+    commits_file = data_dir / 'commits_data_2020_2024.json'
     
     if not commits_file.exists():
         print(f"Error: Commits data file not found at {commits_file}")
@@ -132,7 +132,7 @@ def main():
     bugs_data = analyze_commits_for_bugs(commits_data)
     
     # Save to JSON file
-    output_file = data_dir / 'bug_metadata_2024_2025.json'
+    output_file = data_dir / 'bug_metadata_2020_2024.json'
     with open(output_file, 'w') as f:
         json.dump(bugs_data, f, indent=2)
     
