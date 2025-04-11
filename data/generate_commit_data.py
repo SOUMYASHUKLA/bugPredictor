@@ -126,7 +126,7 @@ def main():
     data_dir.mkdir(exist_ok=True)
     
     # Navigate up two directories to find tomcat
-    repo_path = os.path.abspath(os.path.join(os.getcwd(), 'data/tomcat'))
+    repo_path = os.path.abspath(os.path.join(os.getcwd(), '..', '..', 'tomcat'))
     
     if not os.path.exists(repo_path):
         print(f"Error: Could not find Tomcat repository at {repo_path}")
@@ -172,4 +172,4 @@ def main():
             print(f"Last commit: {max(dates).strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
-    main() 
+    main()
