@@ -1,5 +1,6 @@
 # Git interaction
 gitpython>=3.1.0
+pytz>=2024.1
 
 # Time zone handling
 pytz>=2024.1

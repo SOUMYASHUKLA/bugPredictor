@@ -18,7 +18,6 @@ def get_default_branch(repo) -> str:
             repo.refs['master']
             return 'master'
         except KeyError:
-            # If neither exists, get the current branch
             return repo.active_branch.name
 
 def get_file_changes(diff_index) -> List[Dict[str, Any]]:
@@ -55,36 +54,34 @@ def get_file_changes(diff_index) -> List[Dict[str, Any]]:
             
     return changes
 
-def extract_commit_data(repo_path: str, until_date: str) -> List[Dict[str, Any]]:
-    print(f"Attempting to open repository at: {os.path.abspath(repo_path)}")
-    try:
-        repo = git.Repo(repo_path)
-    except git.exc.InvalidGitRepositoryError:
-        print(f"Error: {repo_path} is not a valid Git repository")
-        print("Current working directory:", os.getcwd())
-        print("Available files/directories:")
-        print(os.listdir('.'))
-        return []
+def extract_commit_data(repo_path: str, start_date: str, end_date: str) -> List[Dict[str, Any]]:
+    print(f"Opening repository at: {os.path.abspath(repo_path)}")
+    repo = git.Repo(repo_path)
+    
+    # Get default branch
+    branch = get_default_branch(repo)
+    print(f"Using branch: {branch}")
+    
+    # Convert dates to timezone-aware datetime objects
+    start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+    start_dt = pytz.UTC.localize(start_dt)
+    
+    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+    end_dt = pytz.UTC.localize(end_dt)
+    
+    print(f"Extracting commits from {start_date} to {end_date}")
     
     commits_data = []
-    
-    # Get the default branch
-    default_branch = get_default_branch(repo)
-    print(f"Using branch: {default_branch}")
-    
-    # Convert until_date string to timezone-aware datetime object
-    until_dt = datetime.strptime(until_date, '%Y-%m-%d')
-    until_dt = pytz.UTC.localize(until_dt)
-    
-    print("Starting commit extraction...")
-    print(f"Extracting commits until: {until_date}")
-    
     try:
-        for commit in repo.iter_commits(default_branch):
-            if commit.committed_datetime > until_dt:
+        for commit in repo.iter_commits(branch):
+            commit_date = commit.committed_datetime
+            
+            # Skip commits outside our date range
+            if commit_date < start_dt or commit_date > end_dt:
                 continue
                 
             try:
+                # Get the diff for this commit
                 if len(commit.parents) > 0:
                     diff_index = commit.parents[0].diff(commit)
                 else:
@@ -110,12 +107,13 @@ def extract_commit_data(repo_path: str, until_date: str) -> List[Dict[str, Any]]
                 
                 commits_data.append(commit_data)
                 
-                if len(commits_data) % 100 == 0:
-                    print(f"Processed {len(commits_data)} commits...")
+                if len(commits_data) % 10 == 0:  # More frequent updates since we expect fewer commits
+                    print(f"Processed {len(commits_data)} commits from 2024-2025...")
                     
             except Exception as e:
                 print(f"Error processing commit {commit.hexsha}: {str(e)}")
                 continue
+                
     except Exception as e:
         print(f"Error iterating commits: {str(e)}")
         return []
@@ -127,12 +125,8 @@ def main():
     data_dir = Path('data')
     data_dir.mkdir(exist_ok=True)
     
-    # Print current working directory and available paths
-    print("Current working directory:", os.getcwd())
-    print("Available directories:", os.listdir('..'))
-    
-    ##TODO: get remote repo from gitHub
-    repo_path = os.path.abspath(os.path.join(os.getcwd(), '..', '..', 'tomcat'))
+    # Navigate up two directories to find tomcat
+    repo_path = os.path.abspath(os.path.join(os.getcwd(), 'data/tomcat'))
     
     if not os.path.exists(repo_path):
         print(f"Error: Could not find Tomcat repository at {repo_path}")
@@ -140,10 +134,11 @@ def main():
         
     print(f"Found Tomcat repository at: {repo_path}")
     
-    ##TODO: Extract commits in date range
+    # Extract commits for 2024-2025 only
     commits_data = extract_commit_data(
         repo_path=repo_path,
-        until_date='2025-01-01'
+        start_date='2024-01-01',
+        end_date='2025-01-01'
     )
     
     if not commits_data:
@@ -151,12 +146,30 @@ def main():
         return
     
     # Save to JSON file
-    output_file = data_dir / 'commits_data.json'
+    output_file = data_dir / 'commits_data_2024_2025.json'
     with open(output_file, 'w') as f:
         json.dump(commits_data, f, indent=2)
     
-    print(f"\nExtracted {len(commits_data)} commits")
+    print(f"\nExtracted {len(commits_data)} commits from 2024-2025")
     print(f"Data saved to {output_file}")
+    
+    # Print some statistics
+    if commits_data:
+        total_files_changed = sum(c['stats']['total_files_changed'] for c in commits_data)
+        total_lines_added = sum(c['stats']['total_lines_added'] for c in commits_data)
+        total_lines_removed = sum(c['stats']['total_lines_removed'] for c in commits_data)
+        
+        print("\nCommit Statistics:")
+        print(f"Total files changed: {total_files_changed}")
+        print(f"Total lines added: {total_lines_added}")
+        print(f"Total lines removed: {total_lines_removed}")
+        
+        # Show date range of collected commits
+        dates = [datetime.fromisoformat(c['date']) for c in commits_data]
+        if dates:
+            print(f"\nDate range of commits:")
+            print(f"First commit: {min(dates).strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Last commit: {max(dates).strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
     main() 
