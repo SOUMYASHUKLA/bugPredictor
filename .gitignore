@@ -11,3 +11,7 @@ data/tomcat/
 # IDE
 .idea/
 .vscode/
+
+# llm model
+checkpoints/
+*.pt
